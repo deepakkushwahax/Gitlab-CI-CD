@@ -1,0 +1,31 @@
+stages:
+  - install_tools
+  - test
+  - security
+
+install_mvn_trivy_docker_kubeclt:
+  stage: install_tools
+  script:
+    - sudo apt install -y openjdk-17-jre-headless
+    - sudo apt install -y maven
+    - wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+    - echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+    - sudo apt-get update && sudo apt-get install -y trivy
+    - sudo apt install -y docker.io && sudo chmod 666 /var/run/docker.sock
+    - sudo snap install kubectl --classic
+  tags:
+    - self-hosted
+
+unit-tesing:
+  stage: test
+  script:
+    - mvn test
+  tags:
+    - self-hosted
+
+trivy_fs_scan:   # This job runs in the security stage. which runs first
+  stage: security
+  script:
+    - trivy fs --format table -o fs.html .
+  tags:
+    - self-hosted       
